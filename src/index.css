@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-surface-800: #1a1b1e;
+  --color-surface-700: #222328;
+  --color-accent: #f59e0b;
+}
+
+body {
+  @apply bg-surface-800 text-gray-200 font-sans antialiased min-h-screen;
+}
+
+/* subtle focus ring for accessibility */
+*:focus-visible {
+  @apply outline-2 outline-offset-2 outline-accent;
+}
