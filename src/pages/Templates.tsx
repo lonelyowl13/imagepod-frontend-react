@@ -18,6 +18,7 @@ export default function Templates() {
     docker_entrypoint: '',
     docker_start_cmd: '',
     env: '',
+    is_serverless: true,
   })
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -44,6 +45,7 @@ export default function Templates() {
     const body: TemplateCreate = {
       name: form.name,
       image_name: form.image_name,
+      is_serverless: form.is_serverless,
       docker_entrypoint: linesToStrings(form.docker_entrypoint).length
         ? linesToStrings(form.docker_entrypoint)
         : null,
@@ -55,7 +57,7 @@ export default function Templates() {
     try {
       await createTemplate(token, body)
       setShowForm(false)
-      setForm({ name: '', image_name: '', docker_entrypoint: '', docker_start_cmd: '', env: '' })
+      setForm({ name: '', image_name: '', docker_entrypoint: '', docker_start_cmd: '', env: '', is_serverless: true })
       load()
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : 'Failed to create template')
@@ -128,6 +130,18 @@ export default function Templates() {
               />
             </div>
             <div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.is_serverless}
+                  onChange={(e) => setForm((f) => ({ ...f, is_serverless: e.target.checked }))}
+                  className="rounded border-surface-500 bg-surface-600 text-accent focus:ring-accent"
+                />
+                <span className="text-sm font-medium text-gray-300">Serverless (for endpoints)</span>
+              </label>
+              <p className="text-gray-500 text-xs mt-1">Use serverless templates for endpoints; use non-serverless for pods.</p>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Docker entrypoint (one per line)</label>
               <textarea
                 value={form.docker_entrypoint}
@@ -185,9 +199,12 @@ export default function Templates() {
         <ul className="rounded-xl bg-surface-700 border border-surface-500 divide-y divide-surface-500">
           {templates.map((t) => (
             <li key={t.id} className="px-4 py-4 flex items-center justify-between">
-              <Link to={`/templates/${t.id}`} className="flex-1 min-w-0">
+              <Link to={`/templates/${t.id}`} className="flex-1 min-w-0 flex items-center gap-2">
                 <span className="font-medium text-gray-200 hover:text-accent">{t.name}</span>
-                <span className="text-gray-500 text-sm ml-2 font-mono">{t.image_name}</span>
+                <span className="text-gray-500 text-sm font-mono">{t.image_name}</span>
+                <span className={`rounded px-2 py-0.5 text-xs font-medium ${t.is_serverless ? 'bg-accent/20 text-accent' : 'bg-surface-600 text-gray-400'}`}>
+                  {t.is_serverless ? 'Serverless' : 'Pod'}
+                </span>
               </Link>
               <button
                 type="button"

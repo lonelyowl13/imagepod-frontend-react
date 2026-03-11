@@ -10,6 +10,9 @@ import CreateEndpoint from '@/pages/CreateEndpoint'
 import Templates from '@/pages/Templates'
 import TemplateDetail from '@/pages/TemplateDetail'
 import Executors from '@/pages/Executors'
+import Pods from '@/pages/Pods'
+import CreatePod from '@/pages/CreatePod'
+import PodDetail from '@/pages/PodDetail'
 import Volumes from '@/pages/Volumes'
 import VolumeDetail from '@/pages/VolumeDetail'
 import ApiKeys from '@/pages/ApiKeys'
@@ -47,6 +50,9 @@ export default function App() {
         <Route path="endpoints" element={<Endpoints />} />
         <Route path="endpoints/new" element={<CreateEndpoint />} />
         <Route path="endpoints/:id" element={<EndpointDetail />} />
+        <Route path="pods" element={<Pods />} />
+        <Route path="pods/new" element={<CreatePod />} />
+        <Route path="pods/:id" element={<PodDetail />} />
         <Route path="templates" element={<Templates />} />
         <Route path="templates/:id" element={<TemplateDetail />} />
         <Route path="executors" element={<Executors />} />

@@ -189,6 +189,8 @@ export default function EndpointDetail() {
     }
   }
 
+  const serverlessTemplates = templates.filter((t) => t.is_serverless !== false)
+
   useEffect(() => {
     if (!editing || !getAccessToken()) return
     Promise.all([listTemplates(getAccessToken()!), listExecutors(getAccessToken()!)])
@@ -294,7 +296,7 @@ export default function EndpointDetail() {
                 required
                 className="w-full rounded-lg bg-surface-600 border border-surface-500 px-4 py-2 text-gray-200"
               >
-                {templates.map((t) => (
+                {serverlessTemplates.map((t) => (
                   <option key={t.id} value={t.id}>{t.name} ({t.image_name})</option>
                 ))}
               </select>

@@ -49,6 +49,7 @@ export interface TemplateResponse {
   docker_entrypoint: string[]
   docker_start_cmd: string[]
   env: Record<string, string>
+  is_serverless: boolean
 }
 
 export interface TemplateCreate {
@@ -57,6 +58,7 @@ export interface TemplateCreate {
   docker_entrypoint?: string[] | null
   docker_start_cmd?: string[] | null
   env?: Record<string, string> | null
+  is_serverless?: boolean
 }
 
 export interface TemplateUpdate {
@@ -65,6 +67,7 @@ export interface TemplateUpdate {
   docker_entrypoint?: string[] | null
   docker_start_cmd?: string[] | null
   env?: Record<string, string> | null
+  is_serverless?: boolean | null
 }
 
 export interface ExecutorResponse {
@@ -209,6 +212,46 @@ export interface VolumeMountResponse {
   endpoint_id: number
   mount_path: string
   volume: VolumeResponse
+}
+
+export type PodStatus = 'RUNNING' | 'STOPPED' | 'TERMINATED'
+
+export interface PodResponse {
+  id: number
+  name: string
+  compute_type: string
+  executor_id: number
+  template_id: number
+  vcpu_count: number
+  env?: Record<string, string>
+  ports?: number[]
+  status: PodStatus
+  created_at: string
+  last_started_at: string | null
+  last_stopped_at: string | null
+  template: TemplateResponse
+  executor: ExecutorResponse
+  user_id: number
+}
+
+export interface PodCreate {
+  name: string
+  template_id: number
+  executor_id: number
+  compute_type?: string
+  vcpu_count?: number
+  ports?: number[]
+  env?: Record<string, string> | null
+}
+
+export interface PodUpdate {
+  name?: string | null
+  template_id?: number | null
+  executor_id?: number | null
+  compute_type?: string | null
+  vcpu_count?: number | null
+  ports?: number[] | null
+  env?: Record<string, string> | null
 }
 
 export interface HTTPValidationError {
