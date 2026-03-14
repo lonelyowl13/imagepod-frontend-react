@@ -20,6 +20,7 @@ export default function TemplateDetail() {
     docker_entrypoint: '',
     docker_start_cmd: '',
     env: '',
+    is_serverless: true,
   })
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -39,6 +40,7 @@ export default function TemplateDetail() {
           docker_entrypoint: stringsToLines(t.docker_entrypoint),
           docker_start_cmd: stringsToLines(t.docker_start_cmd),
           env: envToLines(t.env),
+          is_serverless: t.is_serverless,
         })
       })
       .catch(() => setError('Failed to load template'))
@@ -59,6 +61,7 @@ export default function TemplateDetail() {
     const body: TemplateUpdate = {
       name: form.name || null,
       image_name: form.image_name || null,
+      is_serverless: form.is_serverless,
       docker_entrypoint: linesToStrings(form.docker_entrypoint).length
         ? linesToStrings(form.docker_entrypoint)
         : null,
@@ -76,6 +79,7 @@ export default function TemplateDetail() {
         docker_entrypoint: stringsToLines(updated.docker_entrypoint),
         docker_start_cmd: stringsToLines(updated.docker_start_cmd),
         env: envToLines(updated.env),
+        is_serverless: updated.is_serverless,
       })
       setEditing(false)
     } catch (err) {
@@ -157,6 +161,17 @@ export default function TemplateDetail() {
               />
             </div>
             <div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.is_serverless}
+                  onChange={(e) => setForm((f) => ({ ...f, is_serverless: e.target.checked }))}
+                  className="rounded border-surface-500 bg-surface-600 text-accent focus:ring-accent"
+                />
+                <span className="text-sm font-medium text-gray-300">Serverless (for endpoints)</span>
+              </label>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
                 Docker entrypoint (one per line)
               </label>
@@ -210,6 +225,7 @@ export default function TemplateDetail() {
                     docker_entrypoint: stringsToLines(template.docker_entrypoint),
                     docker_start_cmd: stringsToLines(template.docker_start_cmd),
                     env: envToLines(template.env),
+                    is_serverless: template.is_serverless,
                   })
                 }}
                 className="rounded-lg bg-surface-600 text-gray-300 px-4 py-2"
@@ -223,6 +239,10 @@ export default function TemplateDetail() {
         <div className="rounded-xl bg-surface-700 border border-surface-500 p-6 mb-8">
           <h2 className="text-lg font-medium text-gray-200 mb-4">Details</h2>
           <dl className="grid grid-cols-1 gap-3 text-sm">
+            <div>
+              <dt className="text-gray-500">Serverless</dt>
+              <dd className="text-gray-200">{template.is_serverless ? 'Yes (for endpoints)' : 'No (for pods)'}</dd>
+            </div>
             <div>
               <dt className="text-gray-500">Image</dt>
               <dd className="font-mono text-gray-200">{template.image_name}</dd>

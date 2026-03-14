@@ -1,13 +1,21 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { createEndpoint } from '@/lib/endpoints-api'
+import { createPod } from '@/lib/pods-api'
 import { listTemplates } from '@/lib/templates-api'
 import { listExecutors } from '@/lib/executors-api'
 import type { TemplateResponse, ExecutorSummary } from '@/types/api'
 import { ApiError } from '@/lib/api'
+import { linesToEnv } from '@/lib/format'
 
-export default function CreateEndpoint() {
+function parsePorts(s: string): number[] {
+  return s
+    .split(/[,\s]+/)
+    .map((x) => parseInt(x.trim(), 10))
+    .filter((n) => !Number.isNaN(n))
+}
+
+export default function CreatePod() {
   const { getAccessToken } = useAuth()
   const navigate = useNavigate()
   const [templates, setTemplates] = useState<TemplateResponse[]>([])
@@ -17,8 +25,10 @@ export default function CreateEndpoint() {
   const [name, setName] = useState('')
   const [templateId, setTemplateId] = useState<number | null>(null)
   const [executorId, setExecutorId] = useState<number | null>(null)
-  const [executionTimeoutMs, setExecutionTimeoutMs] = useState(600_000)
-  const [idleTimeout, setIdleTimeout] = useState(5)
+  const [computeType, setComputeType] = useState('GPU')
+  const [vcpuCount, setVcpuCount] = useState(2)
+  const [portsInput, setPortsInput] = useState('')
+  const [envInput, setEnvInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const loadOptions = useCallback(() => {
@@ -37,7 +47,7 @@ export default function CreateEndpoint() {
     loadOptions()
   }, [loadOptions])
 
-  const serverlessTemplates = templates.filter((t) => t.is_serverless !== false)
+  const podTemplates = templates.filter((t) => t.is_serverless === false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -50,18 +60,20 @@ export default function CreateEndpoint() {
     const token = getAccessToken()
     if (!token) return
     try {
-      const ep = await createEndpoint(token, {
+      const ports = parsePorts(portsInput)
+      const env = linesToEnv(envInput)
+      const pod = await createPod(token, {
         name,
         template_id: templateId,
         executor_id: executorId,
-        compute_type: 'GPU',
-        execution_timeout_ms: executionTimeoutMs,
-        idle_timeout: idleTimeout,
-        vcpu_count: 2,
+        compute_type: computeType || undefined,
+        vcpu_count: vcpuCount,
+        ...(ports.length > 0 && { ports }),
+        ...(Object.keys(env).length > 0 && { env }),
       })
-      navigate(`/endpoints/${ep.id}`)
+      navigate(`/pods/${pod.id}`)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create endpoint')
+      setError(err instanceof ApiError ? err.message : 'Failed to create pod')
     } finally {
       setSubmitting(false)
     }
@@ -71,8 +83,8 @@ export default function CreateEndpoint() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-gray-100 mb-2">Create endpoint</h1>
-      <p className="text-gray-400 text-sm mb-6">Choose a template and executor for your serverless endpoint.</p>
+      <h1 className="text-2xl font-semibold text-gray-100 mb-2">Create pod</h1>
+      <p className="text-gray-400 text-sm mb-6">Choose a template and executor for your long-lived pod.</p>
 
       {error && (
         <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3">
@@ -100,15 +112,15 @@ export default function CreateEndpoint() {
             className="w-full rounded-lg bg-surface-600 border border-surface-500 px-4 py-2 text-gray-200"
           >
             <option value="">Select template</option>
-            {serverlessTemplates.map((t) => (
+            {podTemplates.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name} ({t.image_name})
               </option>
             ))}
           </select>
-          {serverlessTemplates.length === 0 && (
+          {podTemplates.length === 0 && (
             <p className="text-gray-500 text-xs mt-1">
-              No serverless templates. Create a template with &quot;Serverless&quot; checked for use with endpoints.
+              No pod templates. Create a template with &quot;Serverless&quot; unchecked for use with pods.
             </p>
           )}
         </div>
@@ -130,35 +142,56 @@ export default function CreateEndpoint() {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Execution timeout (ms)</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Compute type</label>
             <input
-              type="number"
-              value={executionTimeoutMs}
-              onChange={(e) => setExecutionTimeoutMs(Number(e.target.value))}
+              type="text"
+              value={computeType}
+              onChange={(e) => setComputeType(e.target.value)}
               className="w-full rounded-lg bg-surface-600 border border-surface-500 px-4 py-2 text-gray-200"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Idle timeout (s)</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">vCPUs</label>
             <input
               type="number"
-              value={idleTimeout}
-              onChange={(e) => setIdleTimeout(Number(e.target.value))}
+              value={vcpuCount}
+              onChange={(e) => setVcpuCount(Number(e.target.value) || 2)}
+              min={1}
               className="w-full rounded-lg bg-surface-600 border border-surface-500 px-4 py-2 text-gray-200"
             />
           </div>
         </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Ports (comma-separated)</label>
+          <input
+            type="text"
+            value={portsInput}
+            onChange={(e) => setPortsInput(e.target.value)}
+            placeholder="8080, 8443"
+            className="w-full rounded-lg bg-surface-600 border border-surface-500 px-4 py-2 text-gray-200 placeholder-gray-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Environment (KEY=VALUE, one per line)</label>
+          <textarea
+            value={envInput}
+            onChange={(e) => setEnvInput(e.target.value)}
+            rows={4}
+            placeholder="CUDA_VISIBLE_DEVICES=0"
+            className="w-full rounded-lg bg-surface-600 border border-surface-500 px-4 py-2 font-mono text-sm text-gray-200 placeholder-gray-500"
+          />
+        </div>
         <div className="flex gap-2 pt-2">
           <button
             type="submit"
-            disabled={submitting || !name || !templateId || !executorId || serverlessTemplates.length === 0}
+            disabled={submitting || !name || !templateId || !executorId || podTemplates.length === 0}
             className="rounded-lg bg-accent hover:bg-accent-hover text-surface-800 font-medium px-4 py-2 disabled:opacity-50"
           >
-            {submitting ? 'Creating…' : 'Create endpoint'}
+            {submitting ? 'Creating…' : 'Create pod'}
           </button>
           <button
             type="button"
-            onClick={() => navigate('/endpoints')}
+            onClick={() => navigate('/pods')}
             className="rounded-lg bg-surface-600 text-gray-300 px-4 py-2"
           >
             Cancel
